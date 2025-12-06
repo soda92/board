@@ -73,37 +73,45 @@ while True:
         cmd = ble.read_command()
         if cmd:
             print(f"BLE Command: {cmd}")
-            parts = cmd.split()
             
-            # Default to LED 1 if just "on/off" is sent
-            target = 1
-            action = cmd
-            
-            if len(parts) >= 2:
-                # Format: "1 on", "all off", etc.
-                try:
-                    if parts[0] == "all":
-                        target = "all"
-                    else:
-                        target = int(parts[0])
-                    action = parts[1]
-                except ValueError:
-                    pass # Invalid format, ignore
-
-            # Helper function
-            def apply_led(idx, act):
-                if act == "on":
-                    hw.set_led(idx - 1, True) # 1-based to 0-based
-                elif act == "off":
-                    hw.set_led(idx - 1, False)
-                elif act == "toggle":
-                    hw.toggle_led(idx - 1)
-
-            if target == "all":
+            if cmd == "scroll":
+                 # Simple one-shot scroll effect
                 for i in range(1, 5):
-                    apply_led(i, action)
-            elif isinstance(target, int) and 1 <= target <= 4:
-                apply_led(target, action)
+                    hw.set_led(i-1, True)
+                    time.sleep(0.1)
+                    hw.set_led(i-1, False)
+            else:
+                parts = cmd.split()
+                
+                # Default to LED 1 if just "on/off" is sent
+                target = 1
+                action = cmd
+                
+                if len(parts) >= 2:
+                    # Format: "1 on", "all off", etc.
+                    try:
+                        if parts[0] == "all":
+                            target = "all"
+                        else:
+                            target = int(parts[0])
+                        action = parts[1]
+                    except ValueError:
+                        pass # Invalid format, ignore
+
+                # Helper function
+                def apply_led(idx, act):
+                    if act == "on":
+                        hw.set_led(idx - 1, True) # 1-based to 0-based
+                    elif act == "off":
+                        hw.set_led(idx - 1, False)
+                    elif act == "toggle":
+                        hw.toggle_led(idx - 1)
+
+                if target == "all":
+                    for i in range(1, 5):
+                        apply_led(i, action)
+                elif isinstance(target, int) and 1 <= target <= 4:
+                    apply_led(target, action)
 
         # Slow down sending sensor data, but keep loop fast
         # (Simple hack: only send if seconds changed, or just relying on the sleep)
