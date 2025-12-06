@@ -34,8 +34,8 @@ while True:
         # Allow button toggle even when not connected
         if hw.is_button_pressed():
             if not button_was_pressed:
-                hw.toggle_led()
-                print("Button: LED Toggle")
+                hw.toggle_led(0) # Toggle LED 1
+                print("Button: LED 1 Toggle")
                 button_was_pressed = True
         else:
             button_was_pressed = False
@@ -62,9 +62,9 @@ while True:
         # A. Button
         if hw.is_button_pressed():
             if not button_was_pressed:
-                hw.toggle_led()
+                hw.toggle_led(0) # Toggle LED 1
                 ble.send_data(temp, hum) # Force update on press
-                print("Button: LED Toggle")
+                print("Button: LED 1 Toggle")
                 button_was_pressed = True
         else:
             button_was_pressed = False
@@ -73,20 +73,37 @@ while True:
         cmd = ble.read_command()
         if cmd:
             print(f"BLE Command: {cmd}")
-            if "on" in cmd:
-                hw.set_led(True) # Usually Active Low (False=ON), but we used simple logic in hardware.py
-                # Let's check: nRF52840 DK LEDs are Active Low.
-                # In hardware.py I set: self.led.value = False (OFF?)
-                # Actually: False is usually 0V (Sink) -> LED ON if connected to VCC.
-                # True is 3.3V (Source) -> LED OFF if connected to VCC.
-                # Adjusting logic to assume 'True' logic in hardware class abstracts this?
-                # In hardware.py: self.led.value = state. 
-                # If I want "ON" to mean Light, I should probably inverse it there if needed.
-                # For now, let's assume standard logic and fix if inverted.
-            elif "off" in cmd:
-                hw.set_led(False)
-            elif "toggle" in cmd:
-                hw.toggle_led()
+            parts = cmd.split()
+            
+            # Default to LED 1 if just "on/off" is sent
+            target = 1
+            action = cmd
+            
+            if len(parts) >= 2:
+                # Format: "1 on", "all off", etc.
+                try:
+                    if parts[0] == "all":
+                        target = "all"
+                    else:
+                        target = int(parts[0])
+                    action = parts[1]
+                except ValueError:
+                    pass # Invalid format, ignore
+
+            # Helper function
+            def apply_led(idx, act):
+                if act == "on":
+                    hw.set_led(idx - 1, True) # 1-based to 0-based
+                elif act == "off":
+                    hw.set_led(idx - 1, False)
+                elif act == "toggle":
+                    hw.toggle_led(idx - 1)
+
+            if target == "all":
+                for i in range(1, 5):
+                    apply_led(i, action)
+            elif isinstance(target, int) and 1 <= target <= 4:
+                apply_led(target, action)
 
         # Slow down sending sensor data, but keep loop fast
         # (Simple hack: only send if seconds changed, or just relying on the sleep)

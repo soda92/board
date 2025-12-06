@@ -12,22 +12,27 @@ class Hardware:
         self.display = self._setup_display()
         self.sensor = self._setup_sensor()
         
-        # Setup LED (Active Low for nRF52840 DK)
-        self.led = digitalio.DigitalInOut(board.LED1)
-        self.led.direction = digitalio.Direction.OUTPUT
-        self.led.value = True # Start OFF (Pin High)
+        # Setup LEDs 1-4 (Active Low)
+        self.leds = []
+        for pin in [board.LED1, board.LED2, board.LED3, board.LED4]:
+            led = digitalio.DigitalInOut(pin)
+            led.direction = digitalio.Direction.OUTPUT
+            led.value = True # Start OFF
+            self.leds.append(led)
 
-        # Setup Button (Active Low, Pull Up)
+        # Setup Button 1 (Active Low, Pull Up)
         self.button = digitalio.DigitalInOut(board.BUTTON1)
         self.button.direction = digitalio.Direction.INPUT
         self.button.pull = digitalio.Pull.UP
 
-    def toggle_led(self):
-        self.led.value = not self.led.value
+    def toggle_led(self, index=0):
+        if 0 <= index < len(self.leds):
+            self.leds[index].value = not self.leds[index].value
 
-    def set_led(self, state: bool):
+    def set_led(self, index, state: bool):
         # state True (ON) -> value False (Low)
-        self.led.value = not state
+        if 0 <= index < len(self.leds):
+            self.leds[index].value = not state
 
     def is_button_pressed(self):
         # Button is active low (False when pressed)
