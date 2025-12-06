@@ -36,6 +36,6 @@ class BLEManager:
                 if data:
                     # Decode and strip whitespace/newlines
                     return data.decode("utf-8").strip().lower()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error reading command: {e}")
         return None
