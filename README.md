@@ -1,0 +1,2 @@
+# board
+nrf board code
