@@ -8,18 +8,22 @@ import (
 	"go.bug.st/serial"
 )
 
+var (
+	reloadPort string
+	reloadBaud int
+)
+
 var reloadCmd = &cobra.Command{
 	Use:   "reload",
 	Short: "Trigger a soft reboot (CTRL+D)",
 	Run: func(cmd *cobra.Command, args []string) {
-		portName := "/dev/ttyArchWeather"
 		mode := &serial.Mode{
-			BaudRate: 115200,
+			BaudRate: reloadBaud,
 		}
 
-		port, err := serial.Open(portName, mode)
+		port, err := serial.Open(reloadPort, mode)
 		if err != nil {
-			fmt.Printf("❌ Error opening port %s: %v\n", portName, err)
+			fmt.Printf("❌ Error opening port %s: %v\n", reloadPort, err)
 			return
 		}
 		defer port.Close()
@@ -42,7 +46,12 @@ var reloadCmd = &cobra.Command{
 					// Set read timeout to avoid blocking forever
 					port.SetReadTimeout(100 * time.Millisecond)
 					n, err := port.Read(buf)
-					if err == nil && n > 0 {
+					if err != nil {
+						fmt.Printf("\n❌ Read error: %v\n", err)
+						done <- true
+						return
+					}
+					if n > 0 {
 						fmt.Print(string(buf[:n]))
 					}
 				}
@@ -63,4 +72,6 @@ var reloadCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(reloadCmd)
+	reloadCmd.Flags().StringVarP(&reloadPort, "port", "p", DefaultPort, "Serial port")
+	reloadCmd.Flags().IntVarP(&reloadBaud, "baud", "b", DefaultBaud, "Baud rate")
 }

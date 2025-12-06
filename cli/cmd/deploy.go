@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -16,26 +15,9 @@ var deployCmd = &cobra.Command{
 		fmt.Println("📦 Starting deployment...")
 
 		// 1. Find Device
-		out, err := exec.Command("lsblk", "-o", "PATH,LABEL", "-n", "-r").Output()
+		devPath, err := FindCircuitPythonDevice()
 		if err != nil {
-			fmt.Println("❌ Error finding devices:", err)
-			return
-		}
-
-		var devPath string
-		lines := strings.Split(string(out), "\n")
-		for _, line := range lines {
-			if strings.Contains(line, "CIRCUITPY") {
-				parts := strings.Fields(line)
-				if len(parts) > 0 {
-					devPath = parts[0]
-					break
-				}
-			}
-		}
-
-		if devPath == "" {
-			fmt.Println("❌ Error: CIRCUITPY device not found.")
+			fmt.Println("❌ Error:", err)
 			return
 		}
 		fmt.Printf("📦 Found board at %s\n", devPath)
@@ -62,7 +44,9 @@ if _, err := os.Stat(mountPoint); os.IsNotExist(err) {
 		}
 		defer func() {
 			fmt.Println("⏏️  Unmounting...")
-			exec.Command("sudo", "umount", mountPoint).Run()
+			if err := exec.Command("sudo", "umount", mountPoint).Run(); err != nil {
+				fmt.Printf("❌ Error unmounting: %v\n", err)
+			}
 		}()
 
 		// 3. Sync
