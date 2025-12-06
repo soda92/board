@@ -94,7 +94,7 @@ def handle_command(cmd):
                 target = int(parts[0])
             action = parts[1]
         except ValueError:
-            pass
+            print(f"Invalid command format: {cmd}")
 
     def update_val(idx, act):
         if act == "on":
