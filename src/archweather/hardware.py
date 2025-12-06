@@ -6,18 +6,19 @@ import i2cdisplaybus
 import adafruit_displayio_ssd1306
 from adafruit_bme280 import basic as adafruit_bme280
 
+
 class Hardware:
     def __init__(self):
         self.i2c = busio.I2C(board.SCL, board.SDA, frequency=400_000)
         self.display = self._setup_display()
         self.sensor = self._setup_sensor()
-        
+
         # Setup LEDs 1-4 (Active Low)
         self.leds = []
         for pin in [board.LED1, board.LED2, board.LED3, board.LED4]:
             led = digitalio.DigitalInOut(pin)
             led.direction = digitalio.Direction.OUTPUT
-            led.value = True # Start OFF
+            led.value = True  # Start OFF
             self.leds.append(led)
 
         # Setup Buttons 1-4 (Active Low, Pull Up)
@@ -60,8 +61,8 @@ class Hardware:
                 print("Retrying sensor...")
                 time.sleep(1)
                 attempts += 1
-        
+
         if sensor is None:
             raise RuntimeError("Could not initialize BME280 sensor")
-            
+
         return sensor

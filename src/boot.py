@@ -1,6 +1,4 @@
 import supervisor
-import board
-import storage
 
 # Disable auto-reload to prevent USB instability during writes
 supervisor.runtime.autoreload = False

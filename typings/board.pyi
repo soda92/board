@@ -7,17 +7,15 @@ Board stub for PCA10056 nRF52840-DK
  - board_id: pca10056
  - NVM size: 8192
  - Included modules: _asyncio, _bleio, _bleio (native), _pixelmap, adafruit_bus_device, adafruit_pixelbuf, aesio, alarm, analogio, array, atexit, audiobusio, audiocore, audiomixer, audiomp3, audiopwmio, binascii, bitbangio, bitmapfilter, bitmaptools, board, builtins, builtins.pow3, busdisplay, busio, busio.SPI, busio.UART, codeop, collections, countio, digitalio, displayio, epaperdisplay, errno, fontio, fourwire, framebufferio, getpass, gifio, i2cdisplaybus, io, jpegio, json, keypad, keypad.KeyMatrix, keypad.Keys, keypad.ShiftRegisterKeys, keypad_demux, keypad_demux.DemuxKeyMatrix, locale, lvfontio, math, memorymap, microcontroller, msgpack, neopixel_write, nvm, onewireio, os, os.getenv, paralleldisplaybus, pulseio, pwmio, rainbowio, random, re, rgbmatrix, rotaryio, rtc, sdcardio, select, sharpdisplay, storage, struct, supervisor, synthio, sys, terminalio, tilepalettemapper, time, touchio, traceback, ulab, usb_cdc, usb_hid, usb_midi, vectorio, warnings, watchdog, zlib
- - Frozen libraries: 
+ - Frozen libraries:
 """
 
 # Imports
 import busio
 import microcontroller
 
-
 # Board Info:
 board_id: str
-
 
 # Pins:
 P0_00: microcontroller.Pin  # P0_00
@@ -104,13 +102,11 @@ P1_15: microcontroller.Pin  # P1_15
 D13: microcontroller.Pin  # P1_15
 SCK: microcontroller.Pin  # P1_15
 
-
 # Members:
 def UART() -> busio.UART:
     """Returns the `busio.UART` object for the board's designated UART bus(es).
     The object created is a singleton, and uses the default parameter values for `busio.UART`.
     """
-
 
 # Unmapped:
 #   none
