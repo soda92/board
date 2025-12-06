@@ -26,8 +26,8 @@ class BLEManager:
                 payload = f"{temp:.2f},{humidity:.2f}\n"
                 self.uart.write(payload.encode("utf-8"))
                 print(f"Sent: {payload.strip()}")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error sending data: {e}")
 
     def read_command(self):
         if self.connected and self.uart.in_waiting > 0:
