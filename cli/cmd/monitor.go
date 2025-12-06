@@ -12,7 +12,7 @@ var monitorCmd = &cobra.Command{
 	Use:   "monitor",
 	Short: "Monitor the serial output",
 	Run: func(cmd *cobra.Command, args []string) {
-		portName := "/dev/ttyArchWeather"
+const portName = "/dev/ttyArchWeather"
 		fmt.Printf("🔌 Waiting for %s...\n", portName)
 
 		mode := &serial.Mode{
