@@ -57,8 +57,8 @@ class Hardware:
                     sensor = adafruit_bme280.Adafruit_BME280_I2C(self.i2c, address=0x76)
                 except ValueError:
                     sensor = adafruit_bme280.Adafruit_BME280_I2C(self.i2c, address=0x77)
-            except Exception:
-                print("Retrying sensor...")
+            except Exception as e:
+                print(f"Retrying sensor... Error: {e}")
                 time.sleep(1)
                 attempts += 1
 
