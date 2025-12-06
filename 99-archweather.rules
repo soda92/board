@@ -1,0 +1,11 @@
+# nRF52840 CircuitPython - Static Symlink
+SUBSYSTEM=="tty", ATTRS{idVendor}=="239a", ATTRS{idProduct}=="80da", SYMLINK+="ttyArchWeather"
+
+# 2. Auto-Mount CIRCUITPY with User Permissions
+#    We MUST import 'blkid' first to read the "CIRCUITPY" label
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_USAGE}=="filesystem", \
+    IMPORT{program}=="/usr/bin/blkid -o udev -p %N"
+
+#    If label matches, mount it with ownership set to your user (uid=1000)
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="CIRCUITPY", TAG+="systemd", \
+    RUN+="/usr/bin/systemd-mount --no-block --automount=yes --collect --options=uid=1000,gid=1000,umask=007 $devnode /mnt/CIRCUITPY"
