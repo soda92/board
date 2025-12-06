@@ -1,26 +1,44 @@
 #!/usr/bin/fish
 
 set SOURCE "src/"
-set DEST "/mnt/CIRCUITPY"
+# Find the device with LABEL="CIRCUITPY"
+set DEV (lsblk -o PATH,LABEL -n -r | grep " CIRCUITPY" | cut -d ' ' -f1)
 
-if not test -d $DEST
-    echo "❌ Error: Board not mounted at $DEST"
+if test -z "$DEV"
+    echo "❌ Error: CIRCUITPY device not found."
     exit 1
 end
 
-echo "📦 Deploying $SOURCE to $DEST..."
+set MOUNTPOINT "/mnt/tmp_circuitpy"
+
+echo "📦 Found board at $DEV"
+
+# Create temp mount point
+if not test -d $MOUNTPOINT
+    sudo mkdir -p $MOUNTPOINT
+end
+
+# Mount
+# Using specific user/group to ensure write access
+set UID (id -u)
+set GID (id -g)
+sudo mount -o uid=$UID,gid=$GID $DEV $MOUNTPOINT
+if test $status -ne 0
+    echo "❌ Error: Failed to mount $DEV"
+    exit 1
+end
+
+echo "📂 Mounted at $MOUNTPOINT. Syncing..."
 
 # Sync files
-# -r: recursive
-# -v: verbose
-# -u: update (skip newer files on dest)
-# --delete: remove files on board that don't exist in src (keeps it clean)
-# --exclude: ignore hidden files and python cache
-rsync -rvu --delete --exclude='.*' --exclude='__pycache__' $SOURCE $DEST/
+rsync -rvu --delete --exclude='.*' --exclude='__pycache__' $SOURCE $MOUNTPOINT/
 
 if test $status -eq 0
-    sync # Ensure write buffers are flushed
-    echo "✅ Deployment complete."
+    echo "✅ Sync successful."
 else
-    echo "❌ Deployment failed."
+    echo "❌ Sync failed."
 end
+
+# Unmount
+sudo umount $MOUNTPOINT
+echo "⏏️  Unmounted."
