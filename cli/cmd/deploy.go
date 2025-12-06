@@ -42,8 +42,11 @@ var deployCmd = &cobra.Command{
 
 		// 2. Mount
 		mountPoint := "/mnt/tmp_circuitpy"
-		if _, err := os.Stat(mountPoint); os.IsNotExist(err) {
-			exec.Command("sudo", "mkdir", "-p", mountPoint).Run()
+if _, err := os.Stat(mountPoint); os.IsNotExist(err) {
+			if err := exec.Command("sudo", "mkdir", "-p", mountPoint).Run(); err != nil {
+				fmt.Println("❌ Error creating mount point:", err)
+				return
+			}
 		}
 
 		uid := os.Getuid()
