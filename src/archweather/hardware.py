@@ -20,10 +20,13 @@ class Hardware:
             led.value = True # Start OFF
             self.leds.append(led)
 
-        # Setup Button 1 (Active Low, Pull Up)
-        self.button = digitalio.DigitalInOut(board.BUTTON1)
-        self.button.direction = digitalio.Direction.INPUT
-        self.button.pull = digitalio.Pull.UP
+        # Setup Buttons 1-4 (Active Low, Pull Up)
+        self.buttons = []
+        for pin in [board.BUTTON1, board.BUTTON2, board.BUTTON3, board.BUTTON4]:
+            btn = digitalio.DigitalInOut(pin)
+            btn.direction = digitalio.Direction.INPUT
+            btn.pull = digitalio.Pull.UP
+            self.buttons.append(btn)
 
     def toggle_led(self, index=0):
         if 0 <= index < len(self.leds):
@@ -34,9 +37,10 @@ class Hardware:
         if 0 <= index < len(self.leds):
             self.leds[index].value = not state
 
-    def is_button_pressed(self):
-        # Button is active low (False when pressed)
-        return not self.button.value
+    def is_button_pressed(self, index=0):
+        if 0 <= index < len(self.buttons):
+            return not self.buttons[index].value
+        return False
 
     def _setup_display(self):
         display_bus = i2cdisplaybus.I2CDisplayBus(self.i2c, device_address=0x3C)
