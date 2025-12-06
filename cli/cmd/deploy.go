@@ -63,8 +63,7 @@ var deployCmd = &cobra.Command{
 		}()
 
 		// 3. Sync
-		fmt.Printf("📂 Mounted at %s. Syncing src/...
-", mountPoint)
+		fmt.Printf("📂 Mounted at %s. Syncing src/...\n", mountPoint)
 		rsyncCmd := exec.Command("rsync", "-rvu", "--delete", "--exclude=.*", "--exclude=__pycache__", "src/", mountPoint+"/")
 		rsyncCmd.Stdout = os.Stdout
 		rsyncCmd.Stderr = os.Stderr
