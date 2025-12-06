@@ -1,12 +1,13 @@
 {
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/.venv/lib/python3.13/site-packages",
-        "${workspaceFolder}/.venv/lib/python3.13/site-packages/board_definitions/pca10056"
+        "${workspaceFolder}/typings",
+        "${workspaceFolder}/.venv/lib/python3.13/site-packages"
     ],
     "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.stubPath": "${workspaceFolder}/typings",
     "python.autoComplete.extraPaths": [
-        "${workspaceFolder}/.venv/lib/python3.13/site-packages",
-        "${workspaceFolder}/.venv/lib/python3.13/site-packages/board_definitions/pca10056"
+        "${workspaceFolder}/typings",
+        "${workspaceFolder}/.venv/lib/python3.13/site-packages"
     ]
 }

@@ -13,14 +13,14 @@ from adafruit_ble.services.nordic import UARTService
 
 # 1. Boot Safety (Prevents "Black Screen on Plug-in")
 displayio.release_displays()
-time.sleep(1.5) 
+time.sleep(1.5)
 
 # 2. Setup I2C
 # We stick to 400kHz since SSD1306 handles it well
 i2c = busio.I2C(board.SCL, board.SDA, frequency=400_000)
 
 # 3. Setup Display (SSD1306)
-display_bus = i2cdisplaybus.I2CDisplayBus(i2c, device_address=0x3c)
+display_bus = i2cdisplaybus.I2CDisplayBus(i2c, device_address=0x3C)
 WIDTH = 128
 HEIGHT = 64
 display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=WIDTH, height=HEIGHT)
@@ -31,7 +31,9 @@ display.root_group = splash
 
 title = label.Label(terminalio.FONT, text="ArchWeather", color=0xFFFFFF, x=8, y=8)
 status = label.Label(terminalio.FONT, text="Init Sensor...", color=0xFFFFFF, x=8, y=25)
-data_text = label.Label(terminalio.FONT, text="", color=0xFFFFFF, x=8, y=45, line_spacing=0.9)
+data_text = label.Label(
+    terminalio.FONT, text="", color=0xFFFFFF, x=8, y=45, line_spacing=0.9
+)
 
 splash.append(title)
 splash.append(status)
@@ -66,26 +68,26 @@ print("System Online.")
 while True:
     ble.start_advertising(advertisement)
     status.text = "BLE: Advertising..."
-    
+
     # Loop while waiting for connection
     while not ble.connected:
         temp = bme280.temperature
         hum = bme280.relative_humidity
-        
+
         # Update OLED
         data_text.text = f"{temp:.1f} C   {hum:.0f} %"
         time.sleep(1)
 
     # Connected!
     status.text = "BLE: Connected!"
-    
+
     while ble.connected:
         temp = bme280.temperature
         hum = bme280.relative_humidity
-        
+
         # Update OLED
         data_text.text = f"{temp:.1f} C   {hum:.0f} %"
-        
+
         # Send to Arch Linux
         try:
             # CSV format for your python script
@@ -94,5 +96,5 @@ while True:
             print(f"Sent: {payload.strip()}")
         except Exception:
             pass
-            
+
         time.sleep(1)
