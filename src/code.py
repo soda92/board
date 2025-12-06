@@ -1,127 +1,164 @@
+import asyncio
 import time
 import displayio
 from archweather.hardware import Hardware
 from archweather.ui import UserInterface
 from archweather.ble import BLEManager
 
-# 1. Boot Safety
-displayio.release_displays()
-time.sleep(1.5)
+# Shared State
+class AppState:
+    def __init__(self):
+        self.led_mode = "static" # "static" or "scroll"
+        # Track state for 4 LEDs
+        self.led_values = [False, False, False, False]
+        self.button_pressed = False
 
-# 2. Initialization
-print("Initializing Hardware...")
-hw = Hardware()
-ui = UserInterface(hw.display)
-ble = BLEManager()
+state = AppState()
 
-print("System Online.")
-ui.update_status("Sensor OK!")
+# --- TASKS ---
 
-# Simple button debounce state
-button_was_pressed = False
+async def led_task(hw):
+    print("Task: LED started")
+    while True:
+        if state.led_mode == "scroll":
+            # 1 -> 2 -> 4 -> 3
+            sequence = [0, 1, 3, 2]
+            for idx in sequence:
+                if state.led_mode != "scroll": break
+                
+                # Turn ON
+                hw.set_led(idx, True)
+                await asyncio.sleep(0.15)
+                
+                # Turn OFF
+                hw.set_led(idx, False)
+                
+            # Small pause between cycles?
+            # await asyncio.sleep(0.1)
+        else:
+            # Static Mode: Apply stored values
+            for i in range(4):
+                hw.set_led(i, state.led_values[i])
+            
+            # Sleep to yield control, checking frequency can be low for static
+            await asyncio.sleep(0.1)
 
-# 3. Main Loop
-while True:
-    ble.start_advertising()
-    ui.update_status("BLE: Advertising...")
-    
-    # Loop while waiting for connection
-    while not ble.connected:
-        temp = hw.sensor.temperature
-        hum = hw.sensor.relative_humidity
+async def sensor_task(hw, ui, ble):
+    print("Task: Sensor started")
+    while True:
+        # 1. Read Sensor
+        try:
+            temp = hw.sensor.temperature
+            hum = hw.sensor.relative_humidity
+        except Exception as e:
+            print(f"Sensor Error: {e}")
+            temp, hum = 0, 0
+            
+        # 2. Update UI
         ui.update_data(temp, hum)
         
-        # Allow button toggle even when not connected
-        if hw.is_button_pressed():
-            if not button_was_pressed:
-                hw.toggle_led(0) # Toggle LED 1
-                print("Button: LED 1 Toggle")
-                button_was_pressed = True
+        # 3. Send BLE (if connected)
+        if ble.connected:
+            ble.send_data(temp, hum)
+            ui.update_status("BLE: Connected")
         else:
-            button_was_pressed = False
+            ui.update_status("BLE: Advertising...")
             
-        time.sleep(0.1) # Faster loop for button responsiveness
+        # Read every 1 second
+        await asyncio.sleep(1)
 
-    # Connected!
-    ui.update_status("BLE: Connected!")
-    
-    while ble.connected:
-        # 1. Read Sensors
-        temp = hw.sensor.temperature
-        hum = hw.sensor.relative_humidity
-        
-        ui.update_data(temp, hum)
-        
-        # 2. Send Data (Throttle this if loop is fast)
-        # We use a counter or time check to avoid flooding UART
-        # For simplicity, we just send every loop iteration but sleep 1s? 
-        # No, we need fast loop for button. So let's track time.
-        # (Skipping complex time tracking for now, we'll send every ~1s logic below)
-        
-        # 3. Handle Inputs
-        # A. Button
+async def input_task(hw, ble):
+    print("Task: Input started")
+    while True:
+        # A. Button Logic (Toggle LED 1)
         if hw.is_button_pressed():
-            if not button_was_pressed:
-                hw.toggle_led(0) # Toggle LED 1
-                ble.send_data(temp, hum) # Force update on press
-                print("Button: LED 1 Toggle")
-                button_was_pressed = True
+            if not state.button_pressed:
+                print("Button Pressed")
+                state.button_pressed = True
+                
+                # Action: Toggle LED 1 (Index 0)
+                # If we are scrolling, stop scrolling? Or just toggle logic?
+                # Let's say button forces "static" mode and toggles LED 1
+                state.led_mode = "static"
+                state.led_values[0] = not state.led_values[0]
         else:
-            button_was_pressed = False
+            state.button_pressed = False
             
-        # B. BLE Commands
+        # B. BLE Logic
         cmd = ble.read_command()
         if cmd:
             print(f"BLE Command: {cmd}")
+            handle_command(cmd, hw)
             
-            if cmd == "scroll":
-                 # One-shot scroll effect: 1 -> 2 -> 4 -> 3
-                 # Indices: 0 (LED1), 1 (LED2), 3 (LED4), 2 (LED3)
-                for i in [0, 1, 3, 2]:
-                    hw.set_led(i, True)
-                    time.sleep(0.15)
-                    hw.set_led(i, False)
-            else:
-                parts = cmd.split()
-                
-                # Default to LED 1 if just "on/off" is sent
-                target = 1
-                action = cmd
-                
-                if len(parts) >= 2:
-                    # Format: "1 on", "all off", etc.
-                    try:
-                        if parts[0] == "all":
-                            target = "all"
-                        else:
-                            target = int(parts[0])
-                        action = parts[1]
-                    except ValueError:
-                        pass # Invalid format, ignore
+        # Check inputs frequently (debounce limit handled by sleep)
+        await asyncio.sleep(0.05)
 
-                # Helper function
-                def apply_led(idx, act):
-                    if act == "on":
-                        hw.set_led(idx - 1, True) # 1-based to 0-based
-                    elif act == "off":
-                        hw.set_led(idx - 1, False)
-                    elif act == "toggle":
-                        hw.toggle_led(idx - 1)
+def handle_command(cmd, hw):
+    # Special: "scroll"
+    if cmd == "scroll":
+        state.led_mode = "scroll"
+        return
 
-                if target == "all":
-                    for i in range(1, 5):
-                        apply_led(i, action)
-                elif isinstance(target, int) and 1 <= target <= 4:
-                    apply_led(target, action)
+    # Normal: "1 on", "all off"
+    parts = cmd.split()
+    target = 1
+    action = cmd
+    
+    if len(parts) >= 2:
+        try:
+            if parts[0] == "all": target = "all"
+            else: target = int(parts[0])
+            action = parts[1]
+        except ValueError: pass
 
-        # Slow down sending sensor data, but keep loop fast
-        # (Simple hack: only send if seconds changed, or just relying on the sleep)
-        # We'll sleep 0.1s for responsiveness, send data every 10 loops (1s)
-        # Implementing simple counter
-        if not hasattr(ble, '_loop_counter'): ble._loop_counter = 0
-        ble._loop_counter += 1
-        if ble._loop_counter >= 20: # ~2 seconds
-            ble.send_data(temp, hum)
-            ble._loop_counter = 0
-            
-        time.sleep(0.1)
+    # Apply to state
+    def update_val(idx, act):
+        if act == "on": state.led_values[idx] = True
+        elif act == "off": state.led_values[idx] = False
+        elif act == "toggle": state.led_values[idx] = not state.led_values[idx]
+
+    if target == "all":
+        state.led_mode = "static"
+        for i in range(4): update_val(i, action)
+    elif isinstance(target, int) and 1 <= target <= 4:
+        state.led_mode = "static"
+        update_val(target - 1, action)
+
+
+async def main():
+    # 1. Boot Safety
+    displayio.release_displays()
+    
+    # 2. Init Hardware
+    print("Initializing...")
+    hw = Hardware()
+    ui = UserInterface(hw.display)
+    ble = BLEManager()
+    
+    ui.update_status("System Online")
+    
+    # 3. Create Tasks
+    # We must explicitly start advertising before the loop or inside a task
+    # The BLEManager helper assumes we call start/stop manually.
+    # Let's modify it to be persistent or handle it in input/monitor task?
+    # Simple fix: Start advertising and let the library handle reconnects usually.
+    # But BLERadio needs start_advertising() called again after disconnect.
+    
+    # Let's add a small background routine to manage BLE advertising
+    async def ble_monitor_task():
+        while True:
+            if not ble.connected and not ble.ble.advertising:
+                ble.start_advertising()
+            elif ble.connected and ble.ble.advertising:
+                ble.stop_advertising() # Should stop automatically but good to be sure
+            await asyncio.sleep(2)
+
+    await asyncio.gather(
+        led_task(hw),
+        sensor_task(hw, ui, ble),
+        input_task(hw, ble),
+        ble_monitor_task()
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
