@@ -27,3 +27,14 @@ class BLEManager:
                 print(f"Sent: {payload.strip()}")
             except Exception:
                 pass
+
+    def read_command(self):
+        if self.connected and self.uart.in_waiting > 0:
+            try:
+                data = self.uart.read(self.uart.in_waiting)
+                if data:
+                    # Decode and strip whitespace/newlines
+                    return data.decode("utf-8").strip().lower()
+            except Exception:
+                pass
+        return None
