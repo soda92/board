@@ -75,11 +75,12 @@ while True:
             print(f"BLE Command: {cmd}")
             
             if cmd == "scroll":
-                 # Simple one-shot scroll effect
-                for i in range(1, 5):
-                    hw.set_led(i-1, True)
-                    time.sleep(0.1)
-                    hw.set_led(i-1, False)
+                 # One-shot scroll effect: 1 -> 2 -> 4 -> 3
+                 # Indices: 0 (LED1), 1 (LED2), 3 (LED4), 2 (LED3)
+                for i in [0, 1, 3, 2]:
+                    hw.set_led(i, True)
+                    time.sleep(0.15)
+                    hw.set_led(i, False)
             else:
                 parts = cmd.split()
                 
